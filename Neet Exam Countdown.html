@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Road to NEET 2025</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
+  <!-- Three.js, OrbitControls & GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.139.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://unpkg.com/gsap@3.9.1/dist/gsap.min.js"></script>
+  <style>
+    /* Base Reset & Styles */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: 'Poppins', sans-serif;
+      overflow: hidden;
+    }
+    body {
+      background-color: #121212;
+      color: #fff;
+      position: relative;
+    }
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
+    .container {
+      position: relative;
+      z-index: 1;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+    .header {
+      font-size: 3em;
+      font-weight: bold;
+      color: #00e676;
+      text-shadow: 2px 3px 15px rgba(0, 0, 0, 0.9);
+      margin-bottom: 20px;
+    }
+    .countdown-wrapper {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #1a1a1a, #0c0c0c);
+      box-shadow: inset 8px 8px 20px #0a0a0a, inset -8px -8px 20px #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+    .clock-face {
+      position: relative;
+      width: 85%;
+      height: 85%;
+      border-radius: 50%;
+      background: radial-gradient(circle, #333 10%, #000 90%);
+      box-shadow: inset 3px 3px 10px #000, inset -3px -3px 10px #333;
+    }
+    .clock-hand {
+      position: absolute;
+      width: 4px;
+      border-radius: 4px;
+      background-color: #fff;
+      bottom: 50%;
+      left: 50%;
+      transform-origin: bottom;
+      transform: translateX(-50%);
+    }
+    .hour-hand { height: 30%; background-color: #00e676; }
+    .minute-hand { height: 40%; background-color: #ffeb3b; }
+    .second-hand { height: 45%; background-color: #ff4081; width: 2px; }
+    .center-dot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #fff;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+    }
+    /* UPDATED: Countdown digits */
+    .countdown {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2em;
+      position: absolute;
+      bottom: -30px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .countdown-digit {
+      position: relative;
+      width: 40px;
+      height: 50px;
+      overflow: hidden;
+      perspective: 500px; /* Add 3D effect */
+    }
+    .digit-group {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 1000%; /* 10 digits * 100% height */
+      transition: transform 0.5s ease-out;
+    }
+    .digit {
+      height: 10%; /* Each digit takes 10% of the group height */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #000;
+      border-radius: 5px;
+    }
+    /* Quote, Progress Bar, and Buttons Styles */
+    .quote {
+      font-style: italic;
+      color: #ffeb3b;
+      font-size: 1.4em;
+      max-width: 80%;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+      position: absolute;
+      bottom: 120px;
+      transition: opacity 1s ease-in-out;
+    }
+    .fullscreen-btn, #darkModeToggle {
+      position: absolute;
+      padding: 10px 20px;
+      background-color: #00e676;
+      color: #121212;
+      border: none;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+      box-shadow: 2px 2px 10px rgba(0, 230, 118, 0.5);
+      transition: 0.3s;
+    }
+    .fullscreen-btn:hover, #darkModeToggle:hover { background-color: #00c853; }
+    .fullscreen-btn { bottom: 30px; right: 30px; }
+    #darkModeToggle { bottom: 30px; left: 30px; }
+    #studyGoals {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      background-color: #1a1a1a;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      max-width: 300px;
+    }
+    #studyGoals h2 { font-size: 1.2em; color: #fff; margin-bottom: 5px; }
+    #goalsList { list-style: none; padding: 0; margin-bottom: 10px; max-height: 150px; overflow-y: auto; width: 100%; }
+    #goalsList li {
+      background-color: #333;
+      color: #eee;
+      padding: 8px;
+      margin-bottom: 5px;
+      border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #goalsList li span { margin: 0 5px; flex: 1; text-align: left; }
+    #goalsList li button {
+      background-color: #ff4081;
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.8em;
+    }
+    #goalsList li button:hover { background-color: #d81b60; }
+    #addGoalForm { display: flex; gap: 5px; width: 100%; }
+    #addGoalForm input {
+      padding: 8px;
+      border: 1px solid #555;
+      border-radius: 5px;
+      background-color: #222;
+      color: #eee;
+      font-size: 0.9em;
+      flex: 1;
+    }
+    #addGoalForm button {
+      background-color: #00e676;
+      color: #121212;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9em;
+      font-weight: bold;
+    }
+    #addGoalForm button:hover { background-color: #00c853; }
+    #progressBar {
+      position: absolute;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      height: 10px;
+      background-color: #333;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    #progressBarFill {
+      height: 10px;
+      background-color: #00e676;
+      border-radius: 5px;
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+    .neon-glow {
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+    @keyframes glow {
+      from { text-shadow: 0 0 10px rgba(0,230,118,0.8); }
+      to { text-shadow: 0 0 20px rgba(0,230,118,0.4); }
+    }
+    .dark-mode { background-color: #000; color: #eee; }
+    .dark-mode .header { color: #00bfa5; }
+    .dark-mode .countdown-wrapper {
+      background: linear-gradient(145deg, #080808, #000000);
+      box-shadow: inset 8px 8px 20px #000000, inset -8px -8px 20px #1a1a1a;
+    }
+    .dark-mode .clock-face {
+      background: radial-gradient(circle, #222 10%, #000 90%);
+      box-shadow: inset 3px 3px 10px #000, inset -3px -3px 10px #222;
+    }
+    .dark-mode .quote { color: #b2ff59; }
+    .dark-mode #studyGoals {
+      background-color: #0a0a0a;
+      box-shadow: 0 2px 5px rgba(255,255,255,0.1);
+    }
+    .dark-mode #studyGoals h2 { color: #eee; }
+    .dark-mode #goalsList li { background-color: #222; color: #ccc; }
+    .dark-mode #goalsList li button { background-color: #f50057; }
+    .dark-mode #goalsList li button:hover { background-color: #c2185b; }
+    .dark-mode #addGoalForm input { background-color: #000; color: #ddd; border-color: #444; }
+    .dark-mode #addGoalForm button { background-color: #00bfa5; color: #000; }
+    .dark-mode #addGoalForm button:hover { background-color: #00897b; }
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+    <header class="header neon-glow" aria-label="Road to NEET 2025">🩺 Road to NEET 2025 🏥</header>
+
+    <div class="countdown-wrapper" aria-label="Countdown Timer">
+      <div class="clock-face">
+        <div class="clock-hand hour-hand" id="hourHand"></div>
+        <div class="clock-hand minute-hand" id="minuteHand"></div>
+        <div class="clock-hand second-hand" id="secondHand"></div>
+        <div class="center-dot"></div>
+      </div>
+      <!-- UPDATED: Countdown digits structure -->
+      <div class="countdown" id="countdown">
+        <!-- Days (Tens) -->
+        <div class="countdown-digit">
+          <div class="digit-group" id="daysTens">
+            <div class="digit">0</div><div class="digit">1</div>
+            <div class="digit">2</div><div class="digit">3</div>
+            <div class="digit">4</div><div class="digit">5</div>
+            <div class="digit">6</div><div class="digit">7</div>
+            <div class="digit">8</div><div class="digit">9</div>
+          </div>
+        </div>
+        <!-- Days (Ones) -->
+        <div class="countdown-digit">
+          <div class="digit-group" id="daysOnes">
+            <div class="digit">0</div><div class="digit">1</div>
+            <div class="digit">2</div><div class="digit">3</div>
+            <div class="digit">4</div><div class="digit">5</div>
+            <div class="digit">6</div><div class="digit">7</div>
+            <div class="digit">8</div><div class="digit">9</div>
+          </div>
+        </div>
+        <span>d</span>
+        <!-- Hours (Tens) -->
+        <div class="countdown-digit">
+          <div class="digit-group" id="hoursTens">
+            <div class="digit">0</div><div class="digit">1</div>
+            <div class="digit">2</div><div class="digit">3</div>
+            <div class="digit">4</div><div class="digit">5</div>
+            <div class="digit">6</div><div class="digit">7</div>
+            <div class="digit">8</div><div class="digit">9</div>
+          </div>
+        </div>
+        <!-- Hours (Ones) -->
+        <div class="countdown-digit">
+          <div class="digit-group" id="hoursOnes">
+            <div class="digit">0</div><div class="digit">1</div>
+            <div class="digit">2</div><div class="digit">3</div>
+            <div class="digit">4</div><div class="digit">5</div>
+            <div class="digit">6</div><div class="digit">7</div>
+            <div class="digit">8</div><div class="digit">9</div>
+          </div>
+        </div>
+        <span>h</span>
+        <!-- Minutes (Tens) -->
+        <div class="countdown-digit">
+          <div class="digit-group" id="minutesTens">
+            <div class="digit">0</div><div class="digit">1</div>
+            <div class="digit">2</div><div class="digit">3</div>
+            <div class="digit">4</div><div class="digit">5</div>
+            <div class="digit">6</div><div class="digit">7</div>
+            <div class="digit">8</div><div class="digit">9</div>
+          </div>
+        </div>
+        <!-- Minutes (Ones) -->
+        <div class="countdown-digit">
+          <div class="digit-group" id="minutesOnes">
+            <div class="digit">0</div><div class="digit">1</div>
+            <div class="digit">2</div><div class="digit">3</div>
+            <div class="digit">4</div><div class="digit">5</div>
+            <div class="digit">6</div><div class="digit">7</div>
+            <div class="digit">8</div><div class="digit">9</div>
+          </div>
+        </div>
+        <span>m</span>
+        <!-- Seconds (Tens) -->
+        <div class="countdown-digit">
+          <div class="digit-group" id="secondsTens">
+            <div class="digit">0</div><div class="digit">1</div>
+            <div class="digit">2</div><div class="digit">3</div>
+            <div class="digit">4</div><div class="digit">5</div>
+            <div class="digit">6</div><div class="digit">7</div>
+            <div class="digit">8</div><div class="digit">9</div>
+          </div>
+        </div>
+        <!-- Seconds (Ones) -->
+        <div class="countdown-digit">
+          <div class="digit-group" id="secondsOnes">
+            <div class="digit">0</div><div class="digit">1</div>
+            <div class="digit">2</div><div class="digit">3</div>
+            <div class="digit">4</div><div class="digit">5</div>
+            <div class="digit">6</div><div class="digit">7</div>
+            <div class="digit">8</div><div class="digit">9</div>
+          </div>
+        </div>
+        <span>s</span>
+      </div>
+    </div>
+
+    <p class="quote" id="quote" aria-live="polite"></p>
+
+    <div id="progressBar" aria-label="Exam Progress">
+      <div id="progressBarFill"></div>
+    </div>
+
+    <section id="studyGoals" aria-labelledby="goalsHeading">
+      <h2 id="goalsHeading">My Study Goals</h2>
+      <ul id="goalsList"></ul>
+      <form id="addGoalForm" aria-label="Add new study goal">
+        <input type="text" id="goalInput" placeholder="Add a new goal..." aria-label="New goal" />
+        <button type="submit">Add Goal</button>
+      </form>
+    </section>
+
+    <button class="fullscreen-btn" id="fullscreenBtn" aria-label="Toggle Fullscreen">🔲 Fullscreen</button>
+    <button id="darkModeToggle" aria-label="Toggle Dark Mode">Light Mode</button>
+  </div>
+
+  <script>
+    // ----------------- Variables and Setup -----------------
+    const quotes = [
+      "Stay consistent - future doctors are made by daily dedication.",
+      "The pain of study is nothing compared to the pain of regret.",
+      "Push yourself because no one else will do it for you.",
+      "Great things never come from comfort zones.",
+      "Hard work beats talent when talent doesn’t work hard.",
+      "The difference between ordinary and extraordinary is that little extra."
+    ];
+    let quoteIndex = 0;
+    let hourHand, minuteHand, secondHand;
+    let intervalId;
+    let examDate;
+    let totalTime;
+    let goals = [];
+    const goalsList = document.getElementById("goalsList");
+    const goalInput = document.getElementById("goalInput");
+    const addGoalForm = document.getElementById("addGoalForm");
+    const progressBarFill = document.getElementById("progressBarFill");
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    const darkModeToggle = document.getElementById("darkModeToggle");
+    let isDarkMode = false;
+    const body = document.body;
+
+    window.onload = function() {
+      hourHand = document.getElementById('hourHand');
+      minuteHand = document.getElementById('minuteHand');
+      secondHand = document.getElementById('secondHand');
+      examDate = new Date("May 4, 2025 00:00:00");
+      totalTime = examDate.getTime() - new Date("Jan 1, 2024 00:00:00").getTime();
+      
+      loadGoals();
+      updateClock();
+      startCountdown();
+      rotateQuotes();
+      setupEventListeners();
+      init3DBackground();
+    };
+
+    // ----------------- Event Listeners -----------------
+    function setupEventListeners() {
+      addGoalForm.addEventListener("submit", handleAddGoal);
+      fullscreenBtn.addEventListener("click", toggleFullscreen);
+      darkModeToggle.addEventListener("click", toggleDarkMode);
+      window.addEventListener('resize', onWindowResize, false);
+    }
+
+    // ----------------- Clock and Countdown -----------------
+    function updateClock() {
+      const nowTime = new Date();
+      const hourRotation = (nowTime.getHours() % 12) * 30 + nowTime.getMinutes() * 0.5;
+      const minuteRotation = nowTime.getMinutes() * 6;
+      const secondRotation = nowTime.getSeconds() * 6;
+
+      hourHand.style.transform = `translateX(-50%) rotate(${hourRotation}deg)`;
+      minuteHand.style.transform = `translateX(-50%) rotate(${minuteRotation}deg)`;
+      secondHand.style.transform = `translateX(-50%) rotate(${secondRotation}deg)`;
+    }
+
+    function startCountdown() {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(() => {
+        const now = new Date().getTime();
+        const difference = examDate.getTime() - now;
+
+        if (difference <= 0) {
+          clearInterval(intervalId);
+          document.getElementById("countdown").innerHTML = "EXAM DAY!";
+          return;
+        }
+
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+        updateCountdownDisplay(days, hours, minutes, seconds);
+        updateProgressBar();
+      }, 1000);
+    }
+
+    // UPDATED: Digit transition logic
+    function updateDigit(element, value) {
+      const offset = -value * 10; // 10% per digit
+      gsap.to(element, {
+        duration: 0.5,
+        yPercent: offset,
+        ease: "power2.out",
+        overwrite: true
+      });
+    }
+
+    function updateCountdownDisplay(days, hours, minutes, seconds) {
+      // Update each digit
+      updateDigit(document.getElementById('daysTens'), Math.floor(days / 10));
+      updateDigit(document.getElementById('daysOnes'), days % 10);
+      updateDigit(document.getElementById('hoursTens'), Math.floor(hours / 10));
+      updateDigit(document.getElementById('hoursOnes'), hours % 10);
+      updateDigit(document.getElementById('minutesTens'), Math.floor(minutes / 10));
+      updateDigit(document.getElementById('minutesOnes'), minutes % 10);
+      updateDigit(document.getElementById('secondsTens'), Math.floor(seconds / 10));
+      updateDigit(document.getElementById('secondsOnes'), seconds % 10);
+    }
+
+    function updateProgressBar() {
+      const timeRemaining = examDate.getTime() - new Date().getTime();
+      const timeElapsed = totalTime - timeRemaining;
+      const percentage = (timeElapsed / totalTime) * 100;
+      gsap.to(progressBarFill, { duration: 0.5, width: `${percentage}%` });
+    }
+
+    // ----------------- Quote Rotation -----------------
+    function rotateQuotes() {
+      const quoteElement = document.getElementById("quote");
+      quoteElement.style.opacity = "0";
+      setTimeout(() => {
+        quoteElement.innerHTML = quotes[quoteIndex];
+        quoteElement.style.opacity = "1";
+        quoteIndex = (quoteIndex + 1) % quotes.length;
+      }, 500);
+    }
+
+    // ----------------- Fullscreen and Dark Mode -----------------
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+        fullscreenBtn.textContent = "🔳 Exit Fullscreen";
+      } else {
+        document.exitFullscreen();
+        fullscreenBtn.textContent = "🔲 Fullscreen";
+      }
+    }
+
+    function toggleDarkMode() {
+      isDarkMode = !isDarkMode;
+      body.classList.toggle('dark-mode', isDarkMode);
+      darkModeToggle.textContent = isDarkMode ? "Light Mode" : "Dark Mode";
+    }
+
+    // ----------------- Study Goals Management -----------------
+    function handleAddGoal(event) {
+      event.preventDefault();
+      const goalText = goalInput.value.trim();
+      if (!goalText) return;
+      const newGoal = { text: goalText, completed: false };
+      goals.push(newGoal);
+      saveGoals();
+      renderGoals();
+      goalInput.value = "";
+    }
+
+    function toggleGoalCompletion(index) {
+      goals[index].completed = !goals[index].completed;
+      saveGoals();
+      renderGoals();
+    }
+
+    function deleteGoal(index) {
+      goals.splice(index, 1);
+      saveGoals();
+      renderGoals();
+    }
+
+    function renderGoals() {
+      goalsList.innerHTML = "";
+      goals.forEach((goal, index) => {
+        const li = document.createElement("li");
+        const goalTextSpan = document.createElement("span");
+        goalTextSpan.textContent = goal.text;
+        if (goal.completed) {
+          goalTextSpan.style.textDecoration = "line-through";
+          goalTextSpan.style.color = "#aaa";
+        }
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "Delete";
+        deleteButton.addEventListener("click", () => deleteGoal(index));
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = goal.completed;
+        checkbox.addEventListener("change", () => toggleGoalCompletion(index));
+        li.appendChild(checkbox);
+        li.appendChild(goalTextSpan);
+        li.appendChild(deleteButton);
+        goalsList.appendChild(li);
+      });
+    }
+
+    function loadGoals() {
+      const savedGoals = localStorage.getItem("neetStudyGoals");
+      if (savedGoals) {
+        goals = JSON.parse(savedGoals);
+      }
+    }
+
+    function saveGoals() {
+      localStorage.setItem("neetStudyGoals", JSON.stringify(goals));
+    }
+
+    // ----------------- 3D Background using Three.js -----------------
+    let scene, camera, renderer, stars;
+    function init3DBackground() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x000000);
+      document.body.appendChild(renderer.domElement);
+      createStars();
+      camera.position.z = 5;
+      animate3D();
+    }
+
+    function createStars() {
+      const starCount = 2000;
+      const positions = new Float32Array(starCount * 3);
+      for (let i = 0; i < starCount; i++) {
+        const i3 = i * 3;
+        positions[i3] = (Math.random() - 0.5) * 2000;
+        positions[i3 + 1] = (Math.random() - 0.5) * 2000;
+        positions[i3 + 2] = -Math.random() * 1000;
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const material = new THREE.PointsMaterial({
+        color: 0xaaaaaa,
+        size: 2,
+        sizeAttenuation: true,
+      });
+      stars = new THREE.Points(geometry, material);
+      scene.add(stars);
+    }
+
+    function animate3D() {
+      requestAnimationFrame(animate3D);
+      stars.position.z += 0.1;
+      if (stars.position.z > 500) stars.position.z = -500;
+      renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // ----------------- Timed Intervals -----------------
+    setInterval(updateClock, 1000);
+    setInterval(rotateQuotes, 10000);
+    renderGoals();
+  </script>
+</body>
+</html>
